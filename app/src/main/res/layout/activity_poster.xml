@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@mipmap/ic_bg"
+    android:orientation="vertical"
+    tools:context=".ui.activity.PosterActivity">
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <RelativeLayout
+            android:id="@+id/poster_layout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:background="@color/color_0">
+
+            <com.treasure.posterview.ui.views.PosterView
+                android:id="@+id/poster_view"
+                android:layout_width="300dp"
+                android:layout_height="500dp" />
+        </RelativeLayout>
+
+        <com.treasure.posterview.ui.views.FloatingActionButton
+            android:id="@+id/download"
+            android:layout_width="53dp"
+            android:layout_height="53dp"
+            android:layout_gravity="right|bottom"
+            android:layout_marginBottom="50dp"
+            android:layout_marginRight="40dp"
+            fab:fab_colorDisabled="#000000"
+            fab:fab_colorNormal="#539EEB"
+            fab:fab_colorPressed="#028ACB"
+            fab:fab_icon="@mipmap/ic_save" />
+    </FrameLayout>
+</LinearLayout>
