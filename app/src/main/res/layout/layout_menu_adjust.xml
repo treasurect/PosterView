@@ -13,8 +13,8 @@
             android:id="@+id/adjust_menu_replace"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="25dp"
-            android:src="@mipmap/ic_rotate"/>
+            android:layout_height="22dp"
+            android:src="@mipmap/ic_replace"/>
         <ImageView
             android:id="@+id/adjust_menu_rotate"
             android:layout_width="0dp"

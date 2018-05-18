@@ -11,7 +11,6 @@ import android.widget.ImageView;
 import com.squareup.picasso.Picasso;
 import com.treasure.posterview.R;
 import com.treasure.posterview.bean.PhotoBean;
-import com.treasure.posterview.ui.views.ScaleImageView;
 import com.treasure.posterview.utils.Tools;
 
 import java.util.ArrayList;
@@ -30,19 +29,17 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     private ArrayList<PhotoBean> mSelectedPhotos;
     private Set<Integer> mSelectedPhotoPositions;
 
-    private PhotoAdapter.OnPhotoSelectedListener mOnPhotoSelectedListener;
-    private PhotoAdapter.OnPhotoUnSelectedListener mOnPhotoUnSelectedListener;
-    private PhotoAdapter.OnSelectedMaxListener mOnSelectedMaxListener;
-
     private int mMaxCount = 3;
     private int widthPixels;
     private Context context;
+    private int type;
 
     private int mSelectedResId;
 
-    public PhotoAdapter(Context context, List<PhotoBean> mData) {
+    public PhotoAdapter(Context context, List<PhotoBean> mData, int type) {
         this.mData = mData;
         this.context = context;
+        this.type = type;
         mSelectedPhotos = new ArrayList<>();
         mSelectedPhotoPositions = new HashSet<>();
         widthPixels = context.getResources().getDisplayMetrics().widthPixels;
@@ -62,18 +59,6 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
 
     public void setMaxCount(int maxCount) {
         mMaxCount = maxCount;
-    }
-
-    public void setOnSelectedMaxListener(PhotoAdapter.OnSelectedMaxListener onSelectedMaxListener) {
-        mOnSelectedMaxListener = onSelectedMaxListener;
-    }
-
-    public void setOnPhotoSelectedListener(PhotoAdapter.OnPhotoSelectedListener onPhotoSelectedListener) {
-        mOnPhotoSelectedListener = onPhotoSelectedListener;
-    }
-
-    public void setOnPhotoUnSelectedListener(PhotoAdapter.OnPhotoUnSelectedListener onPhotoUnSelectedListener) {
-        mOnPhotoUnSelectedListener = onPhotoUnSelectedListener;
     }
 
     public ArrayList<PhotoBean> getSelectedPhotos() {
@@ -119,46 +104,59 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         holder.mIvPhoto.setLayoutParams(layoutParams);
         //解决View复用时的问题
 
-        if (!mSelectedPhotoPositions.contains(position)) {
-            holder.check.setImageResource(R.mipmap.ic_checkbox_un);
-        } else if (mSelectedPhotoPositions.contains(position)) {
-            holder.check.setImageResource(R.mipmap.ic_checkbox_selected);
-        }
-
         final String path = mData.get(position).getPath();
-
         Picasso.with(holder.itemView.getContext())
                 .load("file:///" + path)
                 .into(holder.mIvPhoto);
 
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int pos = holder.getAdapterPosition();
-                if (mSelectedPhotoPositions.contains(pos)) {
+        if (type == 0) {
+            holder.check.setVisibility(View.VISIBLE);
+            if (!mSelectedPhotoPositions.contains(position)) {
+                holder.check.setImageResource(R.mipmap.ic_checkbox_un);
+            } else if (mSelectedPhotoPositions.contains(position)) {
+                holder.check.setImageResource(R.mipmap.ic_checkbox_selected);
+            }
 
-                    mSelectedPhotoPositions.remove(pos);
-                    mSelectedPhotos.remove(mData.get(pos));
-                    if (mOnPhotoUnSelectedListener != null) {
-                        mOnPhotoUnSelectedListener.onPhotoUnSelected(mData.get(pos), pos);
-                    }
-
-                    holder.check.setImageResource(R.mipmap.ic_checkbox_un);
-
-                } else {
-                    if (mSelectedPhotoPositions.size() >= mMaxCount) {
-                        if (mOnSelectedMaxListener != null) mOnSelectedMaxListener.onSelectedMax();
-                    } else {
-                        mSelectedPhotoPositions.add(pos);
-                        mSelectedPhotos.add(mData.get(pos));
-                        if (mOnPhotoSelectedListener != null) {
-                            mOnPhotoSelectedListener.onPhotoSelected(mData.get(pos), pos);
+            holder.itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    int pos = holder.getAdapterPosition();
+                    if (mSelectedPhotoPositions.contains(pos)) {
+                        mSelectedPhotoPositions.remove(pos);
+                        mSelectedPhotos.remove(mData.get(pos));
+                        if (mOnPhotoUnSelectedListener != null) {
+                            mOnPhotoUnSelectedListener.onPhotoUnSelected(mData.get(pos), pos);
                         }
-                        holder.check.setImageResource(R.mipmap.ic_checkbox_selected);
+
+                        holder.check.setImageResource(R.mipmap.ic_checkbox_un);
+
+                    } else {
+                        if (mSelectedPhotoPositions.size() >= mMaxCount) {
+                            if (mOnSelectedMaxListener != null) {
+                                mOnSelectedMaxListener.onSelectedMax();
+                            }
+                        } else {
+                            mSelectedPhotoPositions.add(pos);
+                            mSelectedPhotos.add(mData.get(pos));
+                            if (mOnPhotoSelectedListener != null) {
+                                mOnPhotoSelectedListener.onPhotoSelected(mData.get(pos), pos);
+                            }
+                            holder.check.setImageResource(R.mipmap.ic_checkbox_selected);
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            holder.check.setVisibility(View.GONE);
+            holder.layout.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mOnPhotoSelectedListener != null) {
+                        mOnPhotoSelectedListener.onPhotoSelected(mData.get(position), position);
+                    }
+                }
+            });
+        }
     }
 
     @Override
@@ -183,6 +181,10 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         }
     }
 
+    private PhotoAdapter.OnPhotoSelectedListener mOnPhotoSelectedListener;
+    private PhotoAdapter.OnPhotoUnSelectedListener mOnPhotoUnSelectedListener;
+    private PhotoAdapter.OnSelectedMaxListener mOnSelectedMaxListener;
+
     public interface OnPhotoSelectedListener {
         void onPhotoSelected(PhotoBean photo, int position);
     }
@@ -193,5 +195,18 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
 
     public interface OnSelectedMaxListener {
         void onSelectedMax();
+    }
+
+
+    public void setOnSelectedMaxListener(PhotoAdapter.OnSelectedMaxListener onSelectedMaxListener) {
+        mOnSelectedMaxListener = onSelectedMaxListener;
+    }
+
+    public void setOnPhotoSelectedListener(PhotoAdapter.OnPhotoSelectedListener onPhotoSelectedListener) {
+        mOnPhotoSelectedListener = onPhotoSelectedListener;
+    }
+
+    public void setOnPhotoUnSelectedListener(PhotoAdapter.OnPhotoUnSelectedListener onPhotoUnSelectedListener) {
+        mOnPhotoUnSelectedListener = onPhotoUnSelectedListener;
     }
 }

@@ -2,6 +2,8 @@ package com.treasure.posterview.ui.activity;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -42,6 +44,7 @@ import butterknife.BindView;
 import butterknife.OnClick;
 
 public class AlbumSelectActivity extends BaseActivity {
+
     @BindView(R.id.recycler_view)
     RecyclerView recyclerView;
     @BindView(R.id.num)
@@ -52,6 +55,8 @@ public class AlbumSelectActivity extends BaseActivity {
     PosterView posterView;
     @BindView(R.id.poster_layout)
     RelativeLayout posterLayout;
+    @BindView(R.id.operate_layout)
+    RelativeLayout operateLayout;
 
     private List<PhotoBean> photoList;
     private ArrayList<String> selectedPhotosList = new ArrayList<>();
@@ -62,6 +67,7 @@ public class AlbumSelectActivity extends BaseActivity {
     private List<LayerBean> layerBeen = new ArrayList<>();
     private List<Integer> positionList = new ArrayList<>();
     private int photosMax = 2;
+    private int type;//0:normal  1：replace
 
     private Handler handler = new Handler() {
         @Override
@@ -90,8 +96,14 @@ public class AlbumSelectActivity extends BaseActivity {
     @Override
     protected void initView() {
         checkStoragePermission();
+
+        Intent intent = getIntent();
+        if (intent != null) {
+            type = intent.getIntExtra("type", 0);
+        }
+
         photoList = new ArrayList<>();
-        recyclerAdapter = new PhotoAdapter(this, photoList);
+        recyclerAdapter = new PhotoAdapter(this, photoList, type);
         recyclerAdapter.setMaxCount(photosMax);
         recyclerAdapter.setSelectedResId(R.drawable.bottom_black);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 3));
@@ -99,85 +111,102 @@ public class AlbumSelectActivity extends BaseActivity {
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.addItemDecoration(new SpaceItemDecoration(Tools.dip2px(this, 16), SpaceItemDecoration.TYPE_ALBUM));
 
-        BitmapFactory.Options op = new BitmapFactory.Options();
-        op.inJustDecodeBounds = true;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Bitmap bitmap = Picasso.with(AlbumSelectActivity.this).load(R.mipmap.ic_template).resize(194, 166).get();
-                    cover = bitmap;
-                    layerBeen.add(new LayerBean(230, 188, 336, 371, 3));
-                    layerBeen.add(new LayerBean(260, 200, 358, 181, 13));
-                    bitmapList.clear();
-                    layers.clear();
+        if (type == 0) {
+            operateLayout.setVisibility(View.VISIBLE);
+            BitmapFactory.Options op = new BitmapFactory.Options();
+            op.inJustDecodeBounds = true;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Bitmap bitmap = Picasso.with(AlbumSelectActivity.this).load(R.mipmap.ic_template).resize(194, 166).get();
+                        cover = bitmap;
+                        layerBeen.add(new LayerBean(230, 188, 336, 371, 3));
+                        layerBeen.add(new LayerBean(260, 200, 358, 181, 13));
+                        bitmapList.clear();
+                        layers.clear();
 
-                    for (int i = 0; i < selectedPhotosList.size(); i++) {
-                        bitmap = BitmapFactory.decodeFile(selectedPhotosList.get(i));
-                        bitmapList.add(bitmap);
-                    }
+                        for (int i = 0; i < selectedPhotosList.size(); i++) {
+                            bitmap = BitmapFactory.decodeFile(selectedPhotosList.get(i));
+                            bitmapList.add(bitmap);
+                        }
 
-                    for (int i = 0; i < bitmapList.size(); i++) {
-                        layers.add(new Layer(bitmapList.get(i), 0)
-                                .markPoint(layerBeen.get(i).getWidth(), layerBeen.get(i).getHeight(),
-                                        layerBeen.get(i).getCenterX(), layerBeen.get(i).getCenterY(),
-                                        layerBeen.get(i).getDegree(), 0.25f)
-                                .build());
+                        for (int i = 0; i < bitmapList.size(); i++) {
+                            layers.add(new Layer(bitmapList.get(i), 0)
+                                    .markPoint(layerBeen.get(i).getWidth(), layerBeen.get(i).getHeight(),
+                                            layerBeen.get(i).getCenterX(), layerBeen.get(i).getCenterY(),
+                                            layerBeen.get(i).getDegree(), 0.25f)
+                                    .build());
+                        }
+                        handler.sendEmptyMessage(200);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    handler.sendEmptyMessage(200);
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
-            }
-        }).start();
+            }).start();
+        }else {
+            operateLayout.setVisibility(View.GONE);
+        }
     }
 
     @Override
     protected void setListener() {
-        selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
+        if (type == 0){
+            selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
 
-        recyclerAdapter.setOnPhotoSelectedListener(new PhotoAdapter.OnPhotoSelectedListener() {
-            @Override
-            public void onPhotoSelected(PhotoBean photo, int position) {
-                selectedPhotosList.add(photo.getPath());
-                selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
-                positionList.add(position);
+            recyclerAdapter.setOnPhotoSelectedListener(new PhotoAdapter.OnPhotoSelectedListener() {
+                @Override
+                public void onPhotoSelected(PhotoBean photo, int position) {
+                    selectedPhotosList.add(photo.getPath());
+                    selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
+                    positionList.add(position);
 
-                //添加单个layer 并更新
-                addAndSetLayerList(photo.getPath());
-                //点击过快 Picasso 加载过慢会出现问题
-                showLoading("");
-                posterView.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        dissLoading();
-                    }
-                },200);
-            }
-        });
-        recyclerAdapter.setOnPhotoUnSelectedListener(new PhotoAdapter.OnPhotoUnSelectedListener() {
-            @Override
-            public void onPhotoUnSelected(PhotoBean photo, int position) {
-                selectedPhotosList.remove(photo.getPath());
-                selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
+                    //添加单个layer 并更新
+                    addAndSetLayerList(photo.getPath());
+                    //点击过快 Picasso 加载过慢会出现问题
+                    showLoading("");
+                    posterView.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            dissLoading();
+                        }
+                    }, 200);
+                }
+            });
+            recyclerAdapter.setOnPhotoUnSelectedListener(new PhotoAdapter.OnPhotoUnSelectedListener() {
+                @Override
+                public void onPhotoUnSelected(PhotoBean photo, int position) {
+                    selectedPhotosList.remove(photo.getPath());
+                    selectedNum.setText("Selected " + selectedPhotosList.size() + "/" + photosMax);
 
-                //删除单个layer 并更新
-                removeAndSetLayerList(position);
-                showLoading("");
-                posterView.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        dissLoading();
-                    }
-                },200);
-            }
-        });
-        recyclerAdapter.setOnSelectedMaxListener(new PhotoAdapter.OnSelectedMaxListener() {
-            @Override
-            public void onSelectedMax() {
-                Toast.makeText(AlbumSelectActivity.this, "装不下了～～～", Toast.LENGTH_SHORT).show();
-            }
-        });
+                    //删除单个layer 并更新
+                    removeAndSetLayerList(position);
+                    showLoading("");
+                    posterView.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            dissLoading();
+                        }
+                    }, 200);
+                }
+            });
+            recyclerAdapter.setOnSelectedMaxListener(new PhotoAdapter.OnSelectedMaxListener() {
+                @Override
+                public void onSelectedMax() {
+                    Toast.makeText(AlbumSelectActivity.this, "装不下了～～～", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }else {
+            recyclerAdapter.setOnPhotoSelectedListener(new PhotoAdapter.OnPhotoSelectedListener() {
+                @Override
+                public void onPhotoSelected(PhotoBean photo, int position) {
+                    Intent intent = new Intent();
+                    intent.putExtra("click_path",photo.getPath());
+                    setResult(RESULT_OK,intent);
+                    AlbumSelectActivity.this.finish();
+                }
+            });
+        }
     }
 
     @OnClick({R.id.done})
@@ -231,13 +260,13 @@ public class AlbumSelectActivity extends BaseActivity {
 
         BitmapFactory.Options op = new BitmapFactory.Options();
         op.inJustDecodeBounds = true;
-        BitmapFactory.decodeFile(path,op);
+        BitmapFactory.decodeFile(path, op);
         final float whScale = (float) op.outWidth / op.outHeight;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Bitmap bitmap = Picasso.with(AlbumSelectActivity.this).load("file://" + path).resize(180, (int)(180/whScale)).get();
+                    Bitmap bitmap = Picasso.with(AlbumSelectActivity.this).load("file://" + path).resize(180, (int) (180 / whScale)).get();
                     bitmapList.add(bitmap);
                     layers.add(new Layer(bitmap, 0)
                             .markPoint(layerBeen.get(bitmapList.size() - 1).getWidth(), layerBeen.get(bitmapList.size() - 1).getHeight(),

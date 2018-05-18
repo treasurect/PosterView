@@ -8,7 +8,6 @@ import android.widget.RelativeLayout;
 
 import com.squareup.picasso.Picasso;
 import com.treasure.posterview.R;
-import com.treasure.posterview.ui.views.ScaleImageView;
 import com.treasure.posterview.utils.Tools;
 
 import butterknife.BindView;

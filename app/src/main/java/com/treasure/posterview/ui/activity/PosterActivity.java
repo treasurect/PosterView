@@ -23,6 +23,7 @@ import com.treasure.posterview.ui.views.Layer;
 import com.treasure.posterview.ui.views.Model;
 import com.treasure.posterview.ui.views.PosterView;
 import com.treasure.posterview.utils.ColorFilter;
+import com.treasure.posterview.utils.LogUtil;
 import com.treasure.posterview.utils.Tools;
 
 import java.io.IOException;
@@ -87,6 +88,13 @@ public class PosterActivity extends BaseActivity {
                         }
                     });
                     dissLoading();
+                    break;
+                case 205:
+                    Bitmap filterLayer = selectedLayer.getFilterLayer();
+                    selectedLayer.resetLayer(bitmap, filterLayer);
+                    selectedLayer.caculateDrawLayer(posterView.getModelView().getWidth() * 1.0f / cover.getWidth());
+                    posterView.release();
+                    posterView.invalidate();
                     break;
             }
         }
@@ -182,17 +190,9 @@ public class PosterActivity extends BaseActivity {
         menu_replace.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                posterView.dissFilterMenu();
-                posterView.dissAdjustMenu();
-                isShowFilter = false;
-
-                bitmap = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_cover);
-                Bitmap filterLayer = selectedLayer.getFilterLayer();
-
-                selectedLayer.resetLayer(bitmap, filterLayer);
-                selectedLayer.caculateDrawLayer(posterView.getModelView().getWidth() * 1.0f / cover.getWidth());
-                posterView.release();
-                posterView.invalidate();
+                Intent intent = new Intent(PosterActivity.this, AlbumSelectActivity.class);
+                intent.putExtra("type",1);
+                startActivityForResult(intent,200);
             }
         });
         menu_rotate.setOnClickListener(new View.OnClickListener() {
@@ -306,6 +306,30 @@ public class PosterActivity extends BaseActivity {
         }
         posterView.setLayoutParams(layoutParams);
         posterLayout.setLayoutParams(layoutParams2);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 200 && resultCode == RESULT_OK){
+            if (data != null){
+                final String click_path = data.getStringExtra("click_path");
+                posterView.dissFilterMenu();
+                posterView.dissAdjustMenu();
+                isShowFilter = false;
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            bitmap = Picasso.with(PosterActivity.this).load("file://"+click_path).get();
+                            handler.sendEmptyMessage(205);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).start();
+            }
+        }
     }
 
     @Override

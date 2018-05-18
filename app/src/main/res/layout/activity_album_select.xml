@@ -18,6 +18,7 @@
         android:layout_weight="1" />
 
     <RelativeLayout
+        android:id="@+id/operate_layout"
         android:layout_width="match_parent"
         android:layout_height="190dp"
         android:background="#0D171F">
